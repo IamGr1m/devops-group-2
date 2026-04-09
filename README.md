@@ -83,4 +83,5 @@ npm test
 7. Verify live application updated
 
 
-QUAN
+
+Duong Quoc Bao
