@@ -82,6 +82,4 @@ npm test
 6. Show CD deploying automatically
 7. Verify live application updated
 
-
-
-Duong Quoc Bao
+HuyHoang
