@@ -81,3 +81,7 @@ npm test
 5. Get approval → Merge to main
 6. Show CD deploying automatically
 7. Verify live application updated
+
+
+
+Duong Quoc Bao
