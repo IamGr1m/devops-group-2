@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build, Test & Push Docker
+    name: Build & Test
     runs-on: ubuntu-latest
 
     services:
@@ -27,54 +27,71 @@ jobs:
           --health-retries=5
 
     steps:
-      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
 
-      # 3. Install dependencies (backend)
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./backend
+      # QUAN TRỌNG: install backend
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm install
 
-      - name: Fix permission
-        run: chmod +x ./backend/node_modules/.bin/jest
+      # fix lỗi jest permission
+      - name: Fix jest permission
+        run: chmod +x backend/node_modules/.bin/jest
 
-      # 4. Run tests
       - name: Run tests
-        run: npx jest
-        working-directory: ./backend
+        run: |
+          cd backend
+          npx jest
         env:
           DB_HOST: localhost
-          DB_PORT: 5432
           DB_USER: myuser
           DB_PASSWORD: mypass
           DB_NAME: mydatabase
 
-      # =========================
-      # 🚀 DOCKER LOGIN
-      # =========================
+      # build + push docker
       - name: Log in to Docker Hub
-        if: github.event_name == 'push'
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      # =========================
-      # 🚀 BUILD & PUSH IMAGE
-      # =========================
       - name: Build and push Docker image
-        if: github.event_name == 'push'
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}baro300105/devops-group-2:latest
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/devops-group-2:latest
+
+  # ========================
+  # 🚀 DEPLOY JOB
+  # ========================
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+
+    needs: build-and-test
+    if: always()
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/devops-group-2
+
+            sudo git pull origin main
+
+            sudo docker-compose pull
+
+            sudo docker-compose up -d --build
