@@ -40,57 +40,46 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: postgres
-    restart: always
-    environment:
-      POSTGRES_DB: devops
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+  frontend:
+    build: ./frontend
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      retries: 5
+      - "8080:80"
+    depends_on:
+      - backend
 
   backend:
     build: ./backend
-    container_name: backend
-    restart: always
+    ports:
+      - "5000:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mydatabase
+      - DB_USER=myuser
+      - DB_PASSWORD=mypass
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: devops
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-    ports:
-      - "8080:8080"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 10s
+      timeout: 5s
       retries: 5
 
-  frontend:
-    build: ./frontend
-    container_name: frontend
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "3000:3000"
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypass
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./database/database.sql:/docker-entrypoint-initdb.d/database.sql
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:3000"]
+      test: ["CMD-SHELL", "pg_isready -U myuser"]
       interval: 10s
+      timeout: 5s
       retries: 5
 
 volumes:
-  postgres_data:
-
+  db-data:
