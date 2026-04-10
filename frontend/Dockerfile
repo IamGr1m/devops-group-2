@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci
 
 COPY . .
 
@@ -24,7 +24,7 @@ RUN npm install -g serve
 COPY --from=builder /app/build ./build
 
 # Expose frontend port
-EXPOSE 3000
+EXPOSE 80
 
 # Run React app
 CMD ["serve", "-s", "build", "-l", "3000"]
