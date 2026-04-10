@@ -81,17 +81,23 @@ jobs:
     if: always()
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /var/www/devops-group-2
+    # Add this step to start Docker daemon
+    - name: Start Docker daemon
+      run: |
+        sudo service docker start
+        sudo usermod -aG docker $USER
 
-            sudo git pull origin main
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /var/www/devops-group-2
 
-            sudo docker-compose pull
+          sudo git pull origin main
 
-            sudo docker-compose up -d --build
+          sudo docker-compose pull
+
+          sudo docker-compose up -d --build
